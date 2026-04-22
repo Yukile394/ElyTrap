@@ -1,0 +1,10 @@
+{
+  "key.elytrap.toggle": "ElyTrap Toggle",
+  "key.elytrap.escape": "ElyTrap Escape Mode",
+  "key.categories.elytrap": "ElyTrap",
+  "elytrap.trap.activated": "§c[ElyTrap] §fTrap AKTİF! Hedef kilitlendi.",
+  "elytrap.trap.deactivated": "§a[ElyTrap] §fTrap devre dışı.",
+  "elytrap.escape.activated": "§e[ElyTrap] §fKaçış modu AKTİF!",
+  "elytrap.escape.deactivated": "§7[ElyTrap] §fKaçış modu devre dışı.",
+  "elytrap.firework.hit": "§c[ElyTrap] §fFişek algılandı! Knockback uygulanıyor..."
+}
