@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "elytrap",
+  "version": "${version}",
+  "name": "ElyTrap",
+  "description": "Elytra trap mod - Trap players in the sky with knockback spam and flight lock.",
+  "authors": ["YourName"],
+  "contact": {
+    "homepage": "https://github.com/YourName/ElyTrap",
+    "sources": "https://github.com/YourName/ElyTrap"
+  },
+  "license": "MIT",
+  "icon": "assets/elytrap/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.elytrap.ElyTrapClient"
+    ]
+  },
+  "mixins": [
+    "elytrap.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21"
+  }
+}

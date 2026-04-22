@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.elytrap.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "FireworkRocketEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
