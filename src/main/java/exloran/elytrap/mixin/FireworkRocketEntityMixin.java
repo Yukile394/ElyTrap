@@ -12,13 +12,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * FireworkRocketEntityMixin
  *
- * Herhangi bir oyuncu fişek kullandığında bir kez tetiklenir.
- * TrapHandler'a haber verir → slot switch yapar.
+ * Fişeği atan oyuncuyu (shooter) TrapHandler'a gönderir.
+ * TrapHandler mesafe kontrolünü kendisi yapar.
  */
 @Mixin(FireworkRocketEntity.class)
 public class FireworkRocketEntityMixin {
 
-    // Her fişek instance'ı sadece 1 kez sayılsın
+    // Her fişek instance'ı yalnızca 1 kez sayılsın
     private boolean elytrap_counted = false;
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -31,11 +31,12 @@ public class FireworkRocketEntityMixin {
 
         if (mc.world == null || mc.player == null) return;
 
-        // Fişeği atan oyuncu biz değilsek (önümüzdeki adam)
+        // Sadece başka bir oyuncu attıysa işle
         if (self.getOwner() instanceof PlayerEntity shooter) {
             if (!shooter.getUuid().equals(mc.player.getUuid())) {
                 elytrap_counted = true;
-                TrapHandler.onFireworkDetected();
+                // Shooter'ı gönder — mesafe kontrolü TrapHandler'da yapılır
+                TrapHandler.onFireworkDetected(shooter);
             }
         }
     }
