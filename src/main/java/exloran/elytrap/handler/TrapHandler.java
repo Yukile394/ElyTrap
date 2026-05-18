@@ -1,13 +1,12 @@
 package com.elytrap.handler;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.text.Text;
 
 /**
@@ -114,12 +113,17 @@ public class TrapHandler {
             ItemStack stack = player.getInventory().getStack(i);
             if (stack.isEmpty()) continue;
 
-            // Enchantment map'ini al ve Knockback var mı bak
-            var enchants = EnchantmentHelper.getEnchantments(stack);
-            for (var entry : enchants.getEnchantments()) {
-                // Knockback key: "minecraft:knockback"
-                if (entry.getValue().toString().contains("knockback")) {
-                    return i;
+            // 1.21+ DataComponent API ile enchantment okuma
+            ItemEnchantmentsComponent enchants = stack.get(DataComponentTypes.ENCHANTMENTS);
+            if (enchants == null) continue;
+
+            for (RegistryEntry<Enchantment> entry : enchants.getEnchantments()) {
+                // RegistryEntry'den key'i al, "knockback" içerip içermediğine bak
+                if (entry.getKey().isPresent()) {
+                    String id = entry.getKey().get().getValue().toString(); // "minecraft:knockback"
+                    if (id.contains("knockback")) {
+                        return i;
+                    }
                 }
             }
         }
