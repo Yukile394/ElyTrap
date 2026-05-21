@@ -12,18 +12,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * FireworkRocketEntityMixin
  *
- * Fişeği atan oyuncuyu (shooter) TrapHandler'a gönderir.
- * TrapHandler mesafe kontrolünü kendisi yapar.
+ * Fişeği atan oyuncuyu (shooter) TrapHandler'a her tick gönderir.
+ * TrapHandler mesafe kontrolünü ve wasInFireworkMode takibini kendisi yapar.
+ *
+ * NOT: elytrap_counted kaldırıldı — her tick TrapHandler'a bildirim gider,
+ * TrapHandler içinde "zaten modundaysa sadece sayacı sıfırla" mantığı var.
+ * Bu sayede fişek kesme ve yeniden başlatma doğru tespit edilir.
  */
 @Mixin(FireworkRocketEntity.class)
 public class FireworkRocketEntityMixin {
 
-    // Her fişek instance'ı yalnızca 1 kez sayılsın
-    private boolean elytrap_counted = false;
-
     @Inject(method = "tick", at = @At("HEAD"))
     private void onFireworkTick(CallbackInfo ci) {
-        if (elytrap_counted) return;
         if (!TrapHandler.active) return;
 
         FireworkRocketEntity self = (FireworkRocketEntity)(Object)this;
@@ -34,10 +34,10 @@ public class FireworkRocketEntityMixin {
         // Sadece başka bir oyuncu attıysa işle
         if (self.getOwner() instanceof PlayerEntity shooter) {
             if (!shooter.getUuid().equals(mc.player.getUuid())) {
-                elytrap_counted = true;
-                // Shooter'ı gönder — mesafe kontrolü TrapHandler'da yapılır
+                // Her tick bildir — TrapHandler içinde tekrar tetikleme korunuyor
                 TrapHandler.onFireworkDetected(shooter);
             }
         }
     }
 }
+
