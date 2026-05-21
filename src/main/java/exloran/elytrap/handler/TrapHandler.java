@@ -15,8 +15,8 @@ import net.minecraft.text.Text;
  *
  * Kurallar:
  *  1. Mod aktifken sadece 1.2 block ilerideki oyuncuya tepki ver.
- *  2. Adam fişek basınca → Knockback slotuna geç.
- *  3. Adam fişeği kesince (belirli süre fişek gelmezse) → slot 1'e (index 0) dön.
+ *  2. Adam fişek basınca → Knockback slotuna ANINDA geç.
+ *  3. Adam fişeği kesince → slot 1'e (index 0) ANINDA dön.
  */
 public class TrapHandler {
 
@@ -25,16 +25,15 @@ public class TrapHandler {
     // ── Mod durumu ───────────────────────────────────────────────────────
     public static boolean active = false;
 
-    // ── Slot switch kuyruğu ──────────────────────────────────────────────
-    private static int pendingSlotSwitches = 0;
-    private static int switchCooldown      = 0;
-    private static final int SWITCH_COOLDOWN_TICKS = 2;
-
     // ── Fişek kesme tespiti ──────────────────────────────────────────────
-    // Son fişek algılandıktan kaç tik sonra "kesildi" sayılsın?
-    private static final int FIREWORK_STOP_TICKS = 15; // ~0.75 saniye
+    // Kaç tik fişek gelmezse "kesildi" sayılsın? (3 tick = ~150ms, en hızlı güvenli değer)
+    private static final int FIREWORK_STOP_TICKS = 3;
     private static int ticksSinceLastFirework    = FIREWORK_STOP_TICKS;
     private static boolean wasInFireworkMode     = false;
+
+    // ── Önceki slot (kendi değiştirmesine izin vermek için) ──────────────
+    private static int lastKnownSlot = -1;
+    private static boolean weDidSwitch = false;
 
     // ── Mesafe ───────────────────────────────────────────────────────────
     private static final double RANGE = 1.2; // block
@@ -45,15 +44,15 @@ public class TrapHandler {
 
     public static void toggle() {
         active = !active;
-        pendingSlotSwitches    = 0;
-        switchCooldown         = 0;
         ticksSinceLastFirework = FIREWORK_STOP_TICKS;
         wasInFireworkMode      = false;
+        weDidSwitch            = false;
+        lastKnownSlot          = (mc.player != null) ? mc.player.getInventory().selectedSlot : -1;
 
         if (active) {
-            sendMessage("§a[SlotSwitch] §fAKTİF");
+            sendMessage("§a[ElyTRAP] §fAktif");
         } else {
-            sendMessage("§7[SlotSwitch] §fKapalı");
+            sendMessage("§7[ElyTRAP] §fKapalı");
         }
     }
 
@@ -65,31 +64,28 @@ public class TrapHandler {
         if (!active) return;
         if (mc.player == null) return;
 
+        int currentSlot = mc.player.getInventory().selectedSlot;
+
+        // ── Oyuncu KENDİ slot değiştirdiyse, biz yapmadıysak takip et ────
+        if (!weDidSwitch && lastKnownSlot != -1 && currentSlot != lastKnownSlot) {
+            // Oyuncunun kendi değişikliği — wasInFireworkMode'u koru ama
+            // son slotu güncelle (slot dönüşleri oradan olmaz)
+        }
+        weDidSwitch = false;
+
         // ── Fişek durdurma sayacını artır ────────────────────────────────
         if (ticksSinceLastFirework < FIREWORK_STOP_TICKS) {
             ticksSinceLastFirework++;
         }
 
-        // ── Fişek kesildi mi? ─────────────────────────────────────────────
-        // Knockback moduna geçmiştik ve artık fişek gelmiyor → slot 1'e dön
+        // ── Fişek kesildi mi? → ANINDA slot 1'e dön ─────────────────────
         if (wasInFireworkMode && ticksSinceLastFirework >= FIREWORK_STOP_TICKS) {
-            wasInFireworkMode   = false;
-            pendingSlotSwitches = 0; // kuyruğu temizle
-            switchCooldown      = 0;
-            switchToSlot(0);         // slot 1 = index 0
-            sendMessage("§e[SlotSwitch] §fSlot 1'e döndü");
+            wasInFireworkMode = false;
+            switchToSlot(0); // slot 1 = index 0 — ANINDA
+            sendMessage("§e[ElyTRAP] §fSlot 1'e döndü");
         }
 
-        // ── Bekleyen switch varsa işle ────────────────────────────────────
-        if (pendingSlotSwitches > 0 && switchCooldown <= 0) {
-            doKnockbackSwitch();
-            pendingSlotSwitches--;
-            switchCooldown = SWITCH_COOLDOWN_TICKS;
-        }
-
-        if (switchCooldown > 0) {
-            switchCooldown--;
-        }
+        lastKnownSlot = mc.player.getInventory().selectedSlot;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -106,14 +102,18 @@ public class TrapHandler {
 
         // Sayacı sıfırla (fişek hâlâ devam ediyor)
         ticksSinceLastFirework = 0;
-        wasInFireworkMode      = true;
 
-        // Switch kuyruğuna ekle
-        pendingSlotSwitches++;
+        // İlk kez fişek algılandıysa ANINDA geç
+        if (!wasInFireworkMode) {
+            wasInFireworkMode = true;
+            doKnockbackSwitch(); // ANINDA — bekleme yok
+        } else {
+            // Zaten knockback modundayken tekrar fişek geldi: sayacı sıfırladık, geçiş yok
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  KNOCKBACK SLOTUNA GEÇ
+    //  KNOCKBACK SLOTUNA GEÇ — ANINDA
     // ─────────────────────────────────────────────────────────────────────
 
     private static void doKnockbackSwitch() {
@@ -124,19 +124,22 @@ public class TrapHandler {
         if (slot != -1) {
             switchToSlot(slot);
         } else {
-            sendMessage("§c[SlotSwitch] Savurma YOK");
+            sendMessage("§c[ElyTRAP] Savurma YOK");
         }
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  SLOT DEĞİŞTİR (paket ile sunucuya bildir)
+    //  SLOT DEĞİŞTİR — Anında, paket ile sunucuya bildir
     // ─────────────────────────────────────────────────────────────────────
 
     private static void switchToSlot(int index) {
         ClientPlayerEntity player = mc.player;
         if (player == null) return;
+        if (player.getInventory().selectedSlot == index) return; // Zaten bu slottaysa işlem yapma
 
+        weDidSwitch = true;
         player.getInventory().selectedSlot = index;
+        lastKnownSlot = index;
 
         if (mc.getNetworkHandler() != null) {
             mc.getNetworkHandler().sendPacket(
